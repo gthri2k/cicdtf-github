@@ -1,7 +1,0 @@
-variable "sg" {
-  
-}
-
-variable "sn" {
-  
-}
