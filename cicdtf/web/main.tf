@@ -1,6 +1,6 @@
 #ec2
 
-resource "aws_instance" "server" {
+resource "aws_instance" "servernew" {
   ami = "ami-05576a079321f21f8"
   instance_type = "t2.micro"
   subnet_id = var.sn
