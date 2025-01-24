@@ -2,7 +2,7 @@
 
 terraform {
   backend "s3" {
-    bucket = "s3statebackend1-gthri"
+    bucket = "s3statebackend2-gthri"
     key = "state"
     region = "us-east-1"
     dynamodb_table = "state-lock"
@@ -17,7 +17,7 @@ terraform {
 
 
 resource "aws_s3_bucket" "mybucket" {
-  bucket = "s3statebackend1-gthri"
+  bucket = "s3statebackend2-gthri"
   versioning {
     enabled = true
   }
