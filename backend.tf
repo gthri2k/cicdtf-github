@@ -16,7 +16,7 @@ terraform {
 
 
 
-resource "aws_s3_bucket" "mybucket" {
+/*resource "aws_s3_bucket" "mybucket" {
   bucket = "s3statebackend2-gthri"
   versioning {
     enabled = true
@@ -31,8 +31,9 @@ resource "aws_s3_bucket" "mybucket" {
     }
   }
 }
+*/
 
-#create dynamodb
+/*#create dynamodb
 resource "aws_dynamodb_table" "statelock" {
   name = "state-lock"
   billing_mode = "PAY_PER_REQUEST"
@@ -43,3 +44,4 @@ resource "aws_dynamodb_table" "statelock" {
     type = "S"
   }
 }
+*/
