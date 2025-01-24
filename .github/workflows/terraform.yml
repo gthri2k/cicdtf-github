@@ -25,6 +25,10 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ap-southeast-1  # Update with your AWS region
 
+      - name: Debug AWS Credentials
+        run: env | grep AWS
+
+
          # Step 3: Setup Terraform
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v2
