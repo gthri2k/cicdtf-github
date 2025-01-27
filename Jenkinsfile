@@ -2,8 +2,6 @@ pipeline {
     agent any
     environment {
         TF_VAR_environment = "${params.ENVIRONMENT}" // Environment (dev/staging/prod)
-        AWS_ACCESS_KEY_ID = credentials('aws-access-secret-key') // AWS credentials
-        AWS_SECRET_ACCESS_KEY = credentials('aws-access-secret-key')
     }
     parameters {
         choice(name: 'ENVIRONMENT', choices: ['dev', 'staging', 'prod'], description: 'Select the environment to deploy')
@@ -11,19 +9,25 @@ pipeline {
     stages {
         stage('Clone Repository') {
             steps {
-                git branch: 'main', url: 'https://github.com/gthri2k/cicdtf-github.git'
+                checkout([
+                    $class: 'GitSCM',
+                    branches: [[name: '*/main']],
+                    userRemoteConfigs: [[
+                        url: 'https://github.com/gthri2k/cicdtf-github.git',
+                        credentialsId: 'github-token' // Replace with your GitHub credentials ID
+                    ]]
+                ])
             }
         }
         stage('Terraform Init') {
             steps {
-                withCredentials([
-                    [$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-access-secret-key']
-                ]) 
-            }
-        }
-            {
-                dir("environments/${params.ENVIRONMENT}") {
-                    bat 'terraform init -backend-config="../../backend.tf"'
+                withCredentials([[
+                    $class: 'AmazonWebServicesCredentialsBinding', 
+                    credentialsId: 'aws-access-secret-key'
+                ]]) {
+                    dir("environments/${params.ENVIRONMENT}") {
+                        bat 'terraform init -backend-config="../../backend.tf"'
+                    }
                 }
             }
         }
@@ -37,30 +41,43 @@ pipeline {
         stage('Terraform Plan') {
             steps {
                 dir("environments/${params.ENVIRONMENT}") {
-                    bat 'terraform plan -var-file=variables.tf'
+                    bat """
+                    terraform plan \
+                    -var-file=${params.ENVIRONMENT}.tfvars
+                    """
                 }
             }
         }
         stage('Terraform Apply') {
             when {
-                expression { return params.ENVIRONMENT == 'dev' || params.ENVIRONMENT == 'staging' }
+                expression { params.ENVIRONMENT == 'dev' || params.ENVIRONMENT == 'staging' }
             }
             steps {
                 dir("environments/${params.ENVIRONMENT}") {
-                    bat 'terraform apply -var-file=variables.tf -auto-approve'
+                    bat """
+                    terraform apply \
+                    -var-file=${params.ENVIRONMENT}.tfvars \
+                    -auto-approve
+                    """
                 }
             }
         }
         stage('Approval for Prod Apply') {
             when {
-                expression { return params.ENVIRONMENT == 'prod' }
+                expression { params.ENVIRONMENT == 'prod' }
             }
             steps {
                 script {
-                    input message: "Approve production deployment?"
+                    timeout(time: 10, unit: 'MINUTES') {
+                        input message: "Approve deployment to production?"
+                    }
                 }
                 dir("environments/${params.ENVIRONMENT}") {
-                    bat 'terraform apply -var-file=variables.tf -auto-approve'
+                    bat """
+                    terraform apply \
+                    -var-file=${params.ENVIRONMENT}.tfvars \
+                    -auto-approve
+                    """
                 }
             }
         }
@@ -74,8 +91,3 @@ pipeline {
         }
     }
 }
-
-options {
-    abortOnError true
-}
-
