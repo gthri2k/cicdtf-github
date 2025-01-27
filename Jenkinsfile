@@ -1,7 +1,7 @@
 pipeline {
     agent any
     tools {
-        terraform 'Terraform latest'
+        terraform 'Terraform latest' // Replace with the exact name of the configured Terraform tool
     }
     environment {
         TF_VAR_environment = "${params.ENVIRONMENT}" // Environment (dev/staging/prod)
@@ -29,7 +29,7 @@ pipeline {
                     credentialsId: 'aws-access-secret-key' // Replace with your AWS credentials ID
                 ]]) {
                     dir("environments/${params.ENVIRONMENT}") {
-                        sh 'terraform init -backend-config="../../backend.tf"'
+                        bat 'terraform init -backend-config="../../backend.tf"'
                     }
                 }
             }
@@ -37,14 +37,14 @@ pipeline {
         stage('Terraform Validate') {
             steps {
                 dir("environments/${params.ENVIRONMENT}") {
-                    sh 'terraform validate'
+                    bat 'terraform validate'
                 }
             }
         }
         stage('Terraform Plan') {
             steps {
                 dir("environments/${params.ENVIRONMENT}") {
-                    sh """
+                    bat """
                     terraform plan \
                     -var-file=${params.ENVIRONMENT}.tfvars
                     """
@@ -57,7 +57,7 @@ pipeline {
             }
             steps {
                 dir("environments/${params.ENVIRONMENT}") {
-                    sh """
+                    bat """
                     terraform apply \
                     -var-file=${params.ENVIRONMENT}.tfvars \
                     -auto-approve
@@ -76,7 +76,7 @@ pipeline {
                     }
                 }
                 dir("environments/${params.ENVIRONMENT}") {
-                    sh """
+                    bat """
                     terraform apply \
                     -var-file=${params.ENVIRONMENT}.tfvars \
                     -auto-approve
