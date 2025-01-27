@@ -1,7 +1,7 @@
 pipeline {
     agent any
     tools {
-        terraform 'Terraform' // Replace 'Terraform' with the name configured in Global Tool Configuration
+        terraform 'Terraform latest'
     }
     environment {
         TF_VAR_environment = "${params.ENVIRONMENT}" // Environment (dev/staging/prod)
