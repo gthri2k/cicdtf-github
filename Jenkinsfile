@@ -2,8 +2,8 @@ pipeline {
     agent any
     environment {
         TF_VAR_environment = "${params.ENVIRONMENT}" // Environment (dev/staging/prod)
-        AWS_ACCESS_KEY_ID = credentials('aws-access-key') // AWS credentials
-        AWS_SECRET_ACCESS_KEY = credentials('aws-secret-key')
+        AWS_ACCESS_KEY_ID = credentials('aws-access-secret-key') // AWS credentials
+        AWS_SECRET_ACCESS_KEY = credentials('aws-access-secret-key')
     }
     parameters {
         choice(name: 'ENVIRONMENT', choices: ['dev', 'staging', 'prod'], description: 'Select the environment to deploy')
