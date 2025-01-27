@@ -16,22 +16,28 @@ pipeline {
         }
         stage('Terraform Init') {
             steps {
+                withCredentials([
+                    [$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-access-secret-key']
+                ]) 
+            }
+        }
+            {
                 dir("environments/${params.ENVIRONMENT}") {
-                    sh 'terraform init -backend-config="../../backend.tf"'
+                    bat 'terraform init -backend-config="../../backend.tf"'
                 }
             }
         }
         stage('Terraform Validate') {
             steps {
                 dir("environments/${params.ENVIRONMENT}") {
-                    sh 'terraform validate'
+                    bat 'terraform validate'
                 }
             }
         }
         stage('Terraform Plan') {
             steps {
                 dir("environments/${params.ENVIRONMENT}") {
-                    sh 'terraform plan -var-file=variables.tf'
+                    bat 'terraform plan -var-file=variables.tf'
                 }
             }
         }
@@ -41,7 +47,7 @@ pipeline {
             }
             steps {
                 dir("environments/${params.ENVIRONMENT}") {
-                    sh 'terraform apply -var-file=variables.tf -auto-approve'
+                    bat 'terraform apply -var-file=variables.tf -auto-approve'
                 }
             }
         }
@@ -54,7 +60,7 @@ pipeline {
                     input message: "Approve production deployment?"
                 }
                 dir("environments/${params.ENVIRONMENT}") {
-                    sh 'terraform apply -var-file=variables.tf -auto-approve'
+                    bat 'terraform apply -var-file=variables.tf -auto-approve'
                 }
             }
         }
