@@ -1,22 +1,36 @@
 pipeline {
     agent any
     environment {
-        TF_VAR_environment = "${params.ENVIRONMENT}" // Environment (dev/staging/prod)
+        TF_VAR_environment = "${params.ENVIRONMENT}" // Set environment variable for Terraform
     }
     parameters {
         choice(name: 'ENVIRONMENT', choices: ['dev', 'staging', 'prod'], description: 'Select the environment to deploy')
     }
     stages {
+        stage('Clean Workspace') {
+            steps {
+                cleanWs() // Clean the workspace to avoid conflicts
+            }
+        }
         stage('Clone Repository') {
             steps {
                 checkout([
                     $class: 'GitSCM',
                     branches: [[name: '*/main']],
+                    extensions: [
+                        [$class: 'CleanBeforeCheckout'], // Clean workspace before checkout
+                        [$class: 'SubmoduleOption', recursiveSubmodules: true] // Include submodules if present
+                    ],
                     userRemoteConfigs: [[
                         url: 'https://github.com/gthri2k/cicdtf-github.git',
                         credentialsId: 'github-token' // Replace with your GitHub credentials ID
                     ]]
                 ])
+            }
+        }
+        stage('Verify Repository Structure') {
+            steps {
+                bat 'dir /s' // List all files and folders in the workspace for debugging
             }
         }
         stage('Terraform Init') {
@@ -42,7 +56,7 @@ pipeline {
             steps {
                 dir("environments/${params.ENVIRONMENT}") {
                     bat """
-                    C:\\Binaries\\terraform.exe plan \
+                    C:\\Binaries\\terraform.exe plan ^
                     -var-file=${params.ENVIRONMENT}.tfvars
                     """
                 }
@@ -55,8 +69,8 @@ pipeline {
             steps {
                 dir("environments/${params.ENVIRONMENT}") {
                     bat """
-                    C:\\Binaries\\terraform.exe apply \
-                    -var-file=${params.ENVIRONMENT}.tfvars \
+                    C:\\Binaries\\terraform.exe apply ^
+                    -var-file=${params.ENVIRONMENT}.tfvars ^
                     -auto-approve
                     """
                 }
@@ -74,8 +88,8 @@ pipeline {
                 }
                 dir("environments/${params.ENVIRONMENT}") {
                     bat """
-                    C:\\Binaries\\terraform.exe apply \
-                    -var-file=${params.ENVIRONMENT}.tfvars \
+                    C:\\Binaries\\terraform.exe apply ^
+                    -var-file=${params.ENVIRONMENT}.tfvars ^
                     -auto-approve
                     """
                 }
