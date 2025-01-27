@@ -1,8 +1,5 @@
 pipeline {
     agent any
-    tools {
-        terraform 'Terraform latest' // Replace with the exact name of the configured Terraform tool
-    }
     environment {
         TF_VAR_environment = "${params.ENVIRONMENT}" // Environment (dev/staging/prod)
     }
@@ -29,7 +26,7 @@ pipeline {
                     credentialsId: 'aws-access-secret-key' // Replace with your AWS credentials ID
                 ]]) {
                     dir("environments/${params.ENVIRONMENT}") {
-                        bat 'terraform init -backend-config="../../backend.tf"'
+                        bat 'C:\\Binaries\\terraform.exe init -backend-config="../../backend.tf"'
                     }
                 }
             }
@@ -37,7 +34,7 @@ pipeline {
         stage('Terraform Validate') {
             steps {
                 dir("environments/${params.ENVIRONMENT}") {
-                    bat 'terraform validate'
+                    bat 'C:\\Binaries\\terraform.exe validate'
                 }
             }
         }
@@ -45,7 +42,7 @@ pipeline {
             steps {
                 dir("environments/${params.ENVIRONMENT}") {
                     bat """
-                    terraform plan \
+                    C:\\Binaries\\terraform.exe plan \
                     -var-file=${params.ENVIRONMENT}.tfvars
                     """
                 }
@@ -58,7 +55,7 @@ pipeline {
             steps {
                 dir("environments/${params.ENVIRONMENT}") {
                     bat """
-                    terraform apply \
+                    C:\\Binaries\\terraform.exe apply \
                     -var-file=${params.ENVIRONMENT}.tfvars \
                     -auto-approve
                     """
@@ -77,7 +74,7 @@ pipeline {
                 }
                 dir("environments/${params.ENVIRONMENT}") {
                     bat """
-                    terraform apply \
+                    C:\\Binaries\\terraform.exe apply \
                     -var-file=${params.ENVIRONMENT}.tfvars \
                     -auto-approve
                     """
