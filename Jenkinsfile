@@ -1,5 +1,8 @@
 pipeline {
     agent any
+    tools {
+        terraform 'Terraform' // Replace 'Terraform' with the name configured in Global Tool Configuration
+    }
     environment {
         TF_VAR_environment = "${params.ENVIRONMENT}" // Environment (dev/staging/prod)
     }
@@ -23,10 +26,10 @@ pipeline {
             steps {
                 withCredentials([[
                     $class: 'AmazonWebServicesCredentialsBinding', 
-                    credentialsId: 'aws-access-secret-key'
+                    credentialsId: 'aws-access-secret-key' // Replace with your AWS credentials ID
                 ]]) {
                     dir("environments/${params.ENVIRONMENT}") {
-                        bat 'terraform init -backend-config="../../backend.tf"'
+                        sh 'terraform init -backend-config="../../backend.tf"'
                     }
                 }
             }
@@ -34,14 +37,14 @@ pipeline {
         stage('Terraform Validate') {
             steps {
                 dir("environments/${params.ENVIRONMENT}") {
-                    bat 'terraform validate'
+                    sh 'terraform validate'
                 }
             }
         }
         stage('Terraform Plan') {
             steps {
                 dir("environments/${params.ENVIRONMENT}") {
-                    bat """
+                    sh """
                     terraform plan \
                     -var-file=${params.ENVIRONMENT}.tfvars
                     """
@@ -54,7 +57,7 @@ pipeline {
             }
             steps {
                 dir("environments/${params.ENVIRONMENT}") {
-                    bat """
+                    sh """
                     terraform apply \
                     -var-file=${params.ENVIRONMENT}.tfvars \
                     -auto-approve
@@ -73,7 +76,7 @@ pipeline {
                     }
                 }
                 dir("environments/${params.ENVIRONMENT}") {
-                    bat """
+                    sh """
                     terraform apply \
                     -var-file=${params.ENVIRONMENT}.tfvars \
                     -auto-approve
