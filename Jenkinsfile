@@ -1,107 +1,53 @@
 pipeline {
-    agent any
-    environment {
-        TF_VAR_environment = "${params.ENVIRONMENT}" // Set environment variable for Terraform
-    }
     parameters {
-        choice(name: 'ENVIRONMENT', choices: ['dev', 'staging', 'prod'], description: 'Select the environment to deploy')
+        booleanParam(name: 'autoApprove', defaultValue: false, description: 'Automatically run apply after generating plan?')
     }
+    environment {
+        AWS_ACCESS_KEY_ID     = credentials('AWS_ACCESS_KEY_ID')
+        AWS_SECRET_ACCESS_KEY = credentials('AWS_SECRET_ACCESS_KEY')
+    }
+    agent any
     stages {
-        stage('Clean Workspace') {
+        stage('checkout') {
             steps {
-                cleanWs() // Clean the workspace to avoid conflicts
-            }
-        }
-        stage('Clone Repository') {
-            steps {
-                checkout([
-                    $class: 'GitSCM',
-                    branches: [[name: '*/main']],
-                    extensions: [
-                        [$class: 'CleanBeforeCheckout'], // Clean workspace before checkout
-                        [$class: 'SubmoduleOption', recursiveSubmodules: true] // Include submodules if present
-                    ],
-                    userRemoteConfigs: [[
-                        url: 'https://github.com/gthri2k/cicdtf-github.git',
-                        credentialsId: 'github-token' // Replace with your GitHub credentials ID
-                    ]]
-                ])
-            }
-        }
-        stage('Verify Repository Structure') {
-            steps {
-                bat 'dir /s' // List all files and folders in the workspace for debugging
-            }
-        }
-        stage('Terraform Init') {
-            steps {
-                withCredentials([[
-                    $class: 'AmazonWebServicesCredentialsBinding', 
-                    credentialsId: 'aws-access-secret-key' // Replace with your AWS credentials ID
-                ]]) {
-                    dir("environments/${params.ENVIRONMENT}") {
-                        bat 'C:\\Binaries\\terraform.exe init -backend-config="../../backend.tf"'
+                script {
+                    dir("terraform") {
+                        git "https://github.com/gthri2k/cicdtf-github.git"
                     }
                 }
             }
         }
-        stage('Terraform Validate') {
+        stage('Plan') {
             steps {
-                dir("environments/${params.ENVIRONMENT}") {
-                    bat 'C:\\Binaries\\terraform.exe validate'
-                }
+                bat '''
+                cd terraform
+                terraform init
+                terraform plan -out tfplan
+                terraform show -no-color tfplan > tfplan.txt
+                '''
             }
         }
-        stage('Terraform Plan') {
-            steps {
-                dir("environments/${params.ENVIRONMENT}") {
-                    bat """
-                    C:\\Binaries\\terraform.exe plan ^
-                    -var-file=${params.ENVIRONMENT}.tfvars
-                    """
-                }
-            }
-        }
-        stage('Terraform Apply') {
+        stage('Approval') {
             when {
-                expression { params.ENVIRONMENT == 'dev' || params.ENVIRONMENT == 'staging' }
-            }
-            steps {
-                dir("environments/${params.ENVIRONMENT}") {
-                    bat """
-                    C:\\Binaries\\terraform.exe apply ^
-                    -var-file=${params.ENVIRONMENT}.tfvars ^
-                    -auto-approve
-                    """
+                not {
+                    equals expected: true, actual: params.autoApprove
                 }
-            }
-        }
-        stage('Approval for Prod Apply') {
-            when {
-                expression { params.ENVIRONMENT == 'prod' }
             }
             steps {
                 script {
-                    timeout(time: 10, unit: 'MINUTES') {
-                        input message: "Approve deployment to production?"
-                    }
-                }
-                dir("environments/${params.ENVIRONMENT}") {
-                    bat """
-                    C:\\Binaries\\terraform.exe apply ^
-                    -var-file=${params.ENVIRONMENT}.tfvars ^
-                    -auto-approve
-                    """
+                    def plan = readFile 'terraform/tfplan.txt'
+                    input message: "Do you want to apply the plan?",
+                    parameters: [text(name: 'Plan', description: 'Please review the plan', defaultValue: plan)]
                 }
             }
         }
-    }
-    post {
-        success {
-            echo "Terraform deployment succeeded!"
-        }
-        failure {
-            echo "Terraform deployment failed!"
+        stage('Apply') {
+            steps {
+                bat '''
+                cd terraform
+                terraform apply -input=false tfplan
+                '''
+            }
         }
     }
 }
