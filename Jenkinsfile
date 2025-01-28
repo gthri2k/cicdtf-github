@@ -19,12 +19,14 @@ pipeline {
         }
         stage('Plan') {
             steps {
-                bat '''
-                cd terraform
-                terraform init
-                terraform plan -out tfplan
-                terraform show -no-color tfplan > tfplan.txt
-                '''
+                retry(3) { // Retry up to 3 times in case of a lock issue
+                    bat '''
+                    cd terraform
+                    terraform init
+                    terraform plan -out tfplan || exit 1
+                    terraform show -no-color tfplan > tfplan.txt
+                    '''
+                }
             }
         }
         stage('Approval') {
@@ -51,3 +53,4 @@ pipeline {
         }
     }
 }
+
